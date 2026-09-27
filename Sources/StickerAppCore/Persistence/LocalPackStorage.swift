@@ -1,5 +1,7 @@
 import Foundation
+#if canImport(StickerCore)
 import StickerCore
+#endif
 
 /// Local persistence manager for user-created sticker packs using JSON disk storage.
 public final class LocalPackStorage: @unchecked Sendable {

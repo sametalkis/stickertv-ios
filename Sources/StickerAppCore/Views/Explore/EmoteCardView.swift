@@ -1,5 +1,7 @@
 import SwiftUI
+#if canImport(StickerCore)
 import StickerCore
+#endif
 
 /// Card representation of an emote in the Explore grid.
 public struct EmoteCardView: View {

@@ -1,5 +1,7 @@
 import Foundation
+#if canImport(StickerCore)
 import StickerCore
+#endif
 
 /// SevenTV v4 GraphQL Provider implementation of `EmoteSourceProtocol`.
 public final class SevenTVProvider: EmoteSourceProtocol, @unchecked Sendable {

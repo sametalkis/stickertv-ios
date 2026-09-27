@@ -1,6 +1,10 @@
 import SwiftUI
+#if canImport(StickerCore)
 import StickerCore
+#endif
+#if canImport(WhatsAppEngine)
 import WhatsAppEngine
+#endif
 
 /// Main studio interface for building, editing, and exporting the sticker pack to WhatsApp.
 public struct PackStudioView: View {

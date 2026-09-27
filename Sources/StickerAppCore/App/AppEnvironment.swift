@@ -1,7 +1,13 @@
 import Foundation
+#if canImport(StickerCore)
 import StickerCore
+#endif
+#if canImport(SevenTVSource)
 import SevenTVSource
+#endif
+#if canImport(WhatsAppEngine)
 import WhatsAppEngine
+#endif
 
 /// App-wide dependency container and runtime environment.
 public final class AppEnvironment: ObservableObject, @unchecked Sendable {

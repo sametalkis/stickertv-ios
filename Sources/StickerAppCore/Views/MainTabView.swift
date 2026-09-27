@@ -1,5 +1,7 @@
 import SwiftUI
+#if canImport(StickerCore)
 import StickerCore
+#endif
 
 /// Root tab bar view connecting Explore, Studio, My Packs, and Settings.
 public struct MainTabView: View {

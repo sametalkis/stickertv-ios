@@ -1,6 +1,10 @@
 import SwiftUI
+#if canImport(StickerCore)
 import StickerCore
+#endif
+#if canImport(WhatsAppEngine)
 import WhatsAppEngine
+#endif
 
 /// Settings screen showing active providers, WhatsApp sticker specifications, and storage management.
 public struct SettingsView: View {

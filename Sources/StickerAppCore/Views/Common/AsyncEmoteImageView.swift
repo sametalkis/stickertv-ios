@@ -1,5 +1,7 @@
 import SwiftUI
+#if canImport(StickerCore)
 import StickerCore
+#endif
 
 /// Reusable asynchronous image view for displaying emote previews.
 public struct AsyncEmoteImageView: View {

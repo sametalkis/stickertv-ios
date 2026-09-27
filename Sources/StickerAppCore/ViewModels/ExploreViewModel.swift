@@ -1,7 +1,11 @@
 import Foundation
 import SwiftUI
+#if canImport(StickerCore)
 import StickerCore
+#endif
+#if canImport(WhatsAppEngine)
 import WhatsAppEngine
+#endif
 
 /// ViewModel driving the Explore and Emote Search interface.
 @MainActor

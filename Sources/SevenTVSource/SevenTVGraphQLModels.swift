@@ -1,5 +1,7 @@
 import Foundation
+#if canImport(StickerCore)
 import StickerCore
+#endif
 
 // MARK: - GraphQL Request Envelope
 

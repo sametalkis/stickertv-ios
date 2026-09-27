@@ -1,5 +1,7 @@
 import SwiftUI
+#if canImport(StickerCore)
 import StickerCore
+#endif
 
 /// Screen displaying the user's saved sticker packs.
 public struct MyPacksView: View {

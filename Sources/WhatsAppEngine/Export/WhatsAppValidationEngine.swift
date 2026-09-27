@@ -1,5 +1,7 @@
 import Foundation
+#if canImport(StickerCore)
 import StickerCore
+#endif
 
 /// Result of WhatsApp sticker pack validation before export.
 public struct PackValidationResult: Sendable {

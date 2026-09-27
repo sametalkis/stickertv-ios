@@ -1,6 +1,10 @@
 import SwiftUI
+#if canImport(StickerCore)
 import StickerCore
+#endif
+#if canImport(WhatsAppEngine)
 import WhatsAppEngine
+#endif
 
 /// Sheet allowing user to customize the 1-3 emojis associated with a sticker.
 public struct EmojiEditorSheet: View {

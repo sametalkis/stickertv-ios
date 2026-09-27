@@ -1,5 +1,7 @@
 import SwiftUI
+#if canImport(StickerCore)
 import StickerCore
+#endif
 
 /// Modal bottom sheet presenting detailed information about a selected emote.
 public struct EmoteDetailSheet: View {

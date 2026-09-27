@@ -1,6 +1,8 @@
 import Foundation
 import SwiftUI
+#if canImport(StickerCore)
 import StickerCore
+#endif
 
 /// ViewModel managing user's saved sticker packs.
 @MainActor
