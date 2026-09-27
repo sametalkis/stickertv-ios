@@ -1,0 +1,84 @@
+name: Build & Release IPA
+
+on:
+  push:
+    branches:
+      - master
+      - main
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-release:
+    name: Build & Release iOS IPA
+    runs-on: macos-14
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Xcode
+        run: |
+          sudo xcode-select -s /Applications/Xcode_15.4.app || sudo xcode-select -s /Applications/Xcode_16.0.app || true
+          xcodebuild -version
+
+      - name: Install XcodeGen
+        run: |
+          brew install xcodegen
+
+      - name: Generate Xcode Project
+        run: |
+          xcodegen generate
+
+      - name: Build & Archive App
+        run: |
+          xcodebuild archive \
+            -project StickerTV.xcodeproj \
+            -scheme StickerTV \
+            -configuration Release \
+            -destination "generic/platform=iOS" \
+            -archivePath build/StickerTV.xcarchive \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY="" \
+            AD_HOC_CODE_SIGNING_ALLOWED=YES
+
+      - name: Package Unsigned IPA
+        run: |
+          mkdir -p build/Payload
+          cp -r build/StickerTV.xcarchive/Products/Applications/StickerTV.app build/Payload/
+          cd build
+          zip -r -9 StickerTV.ipa Payload
+          ls -lh StickerTV.ipa
+
+      - name: Determine Tag & Release Name
+        id: vars
+        run: |
+          if [[ "${{ github.ref }}" == refs/tags/* ]]; then
+            TAG="${GITHUB_REF#refs/tags/}"
+          else
+            TAG="v1.0.${{ github.run_number }}"
+          fi
+          echo "tag=${TAG}" >> "$GITHUB_OUTPUT"
+
+      - name: Upload IPA as Workflow Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: StickerTV-IPA
+          path: build/StickerTV.ipa
+
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.vars.outputs.tag }}
+          name: StickerTV ${{ steps.vars.outputs.tag }}
+          draft: false
+          prerelease: false
+          files: build/StickerTV.ipa
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -1,6 +1,7 @@
 import SwiftUI
 
 /// Main iOS application entry point.
+@main
 public struct StickerTVApp: App {
     @StateObject private var environment = AppEnvironment.shared
     
