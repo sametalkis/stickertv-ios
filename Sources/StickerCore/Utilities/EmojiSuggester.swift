@@ -1,8 +1,16 @@
 import Foundation
 
-/// Provides intelligent emoji recommendations for an emote based on its name and tags.
-/// This fulfills WhatsApp's requirement that every sticker must have 1-3 emojis associated with it.
+/// Provides emoji recommendations for an emote based on its name and tags,
+/// guaranteeing 3 vibrant, expressive emojis per sticker.
 public struct EmojiSuggester: Sendable {
+    
+    public static let fallbackEmojiPool = [
+        "😂", "🔥", "💀", "🗿", "😎", "👀", "🥳", "🤯",
+        "⚡️", "💯", "🫡", "😈", "🤪", "🤡", "🫠", "🥶",
+        "🤩", "✨", "👏", "🙌", "💥", "🚀", "🍿", "🎉",
+        "😹", "😳", "🕺", "🤝", "💪", "👾", "🤙", "🤌",
+        "🤣", "🤤", "🤭", "🧐", "🎯", "👑", "🍕", "🍔"
+    ]
     
     private static let emojiMappings: [(keywords: [String], emojis: [String])] = [
         (["cat", "jam", "meow", "kitty", "neko"], ["🐱", "😻", "🐾"]),
@@ -27,7 +35,13 @@ public struct EmojiSuggester: Sendable {
         (["food", "eat", "nom", "burger", "pizza"], ["🍔", "🍕", "😋"])
     ]
     
-    /// Suggests 1 to 3 emojis based on the emote's name and tags.
+    /// Generates N distinct random emojis from the vibrant pool.
+    public static func randomEmojis(count: Int = 3) -> [String] {
+        var pool = fallbackEmojiPool.shuffled()
+        return Array(pool.prefix(max(1, min(count, 3))))
+    }
+    
+    /// Suggests exactly 1 to 3 emojis based on keywords, filling remaining slots with vibrant random emojis.
     public static func suggest(for emoteName: String, tags: [String] = []) -> [String] {
         let normalized = (emoteName.lowercased() + " " + tags.joined(separator: " ").lowercased())
         
@@ -47,9 +61,11 @@ public struct EmojiSuggester: Sendable {
             }
         }
         
-        // Default fallback if no specific keywords match
-        if matchedEmojis.isEmpty {
-            return ["💬"]
+        // Fill up to 3 emojis with fun, varied emojis if less than 3 matched
+        if matchedEmojis.count < 3 {
+            let needed = 3 - matchedEmojis.count
+            var pool = fallbackEmojiPool.filter { !matchedEmojis.contains($0) }.shuffled()
+            matchedEmojis.append(contentsOf: pool.prefix(needed))
         }
         
         return Array(matchedEmojis.prefix(3))

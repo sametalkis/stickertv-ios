@@ -21,7 +21,6 @@ final class EmojiSuggesterTests: XCTestCase {
     
     func testFallbackEmojiForUnknownEmote() {
         let emojis = EmojiSuggester.suggest(for: "xyz123randomNonExistent", tags: [])
-        XCTAssertFalse(emojis.isEmpty)
-        XCTAssertLessThanOrEqual(emojis.count, 3)
+        XCTAssertEqual(emojis.count, 3)
     }
 }
