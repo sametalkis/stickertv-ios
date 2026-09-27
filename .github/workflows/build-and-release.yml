@@ -75,6 +75,51 @@ jobs:
           name: StickerTV-IPA
           path: build/StickerTV.ipa
 
+      - name: Update AltStore & SideStore Source (apps.json)
+        run: |
+          python3 -c "
+          import json, os, datetime
+
+          tag = '${{ steps.vars.outputs.tag }}'
+          clean_version = tag.lstrip('v')
+          ipa_path = 'build/StickerTV.ipa'
+          size = os.path.getsize(ipa_path) if os.path.exists(ipa_path) else 597635
+          today = datetime.date.today().isoformat()
+          dl_url = f'https://github.com/${{ github.repository }}/releases/download/{tag}/StickerTV.ipa'
+
+          with open('apps.json', 'r', encoding='utf-8') as f:
+              data = json.load(f)
+
+          if data.get('apps'):
+              app = data['apps'][0]
+              app['version'] = clean_version
+              app['versionDate'] = today
+              app['downloadURL'] = dl_url
+              app['size'] = size
+
+              new_ver = {
+                  'version': clean_version,
+                  'buildVersion': clean_version.split('.')[-1],
+                  'date': today,
+                  'size': size,
+                  'downloadURL': dl_url,
+                  'localizedDescription': f'Release {tag}',
+                  'minOSVersion': '17.0'
+              }
+              versions = app.get('versions', [])
+              if not any(v.get('version') == clean_version for v in versions):
+                  versions.insert(0, new_ver)
+              app['versions'] = versions
+
+          with open('apps.json', 'w', encoding='utf-8') as f:
+              json.dump(data, f, indent=2, ensure_ascii=False)
+          "
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add apps.json
+          git commit -m "chore(source): update apps.json for ${{ steps.vars.outputs.tag }} [skip ci]" || echo "No changes to commit"
+          git push origin master || echo "Push failed or already up to date"
+
       - name: Publish GitHub Release
         uses: softprops/action-gh-release@v2
         with:
@@ -82,7 +127,9 @@ jobs:
           name: StickerTV ${{ steps.vars.outputs.tag }}
           draft: false
           prerelease: false
-          files: build/StickerTV.ipa
+          files: |
+            build/StickerTV.ipa
+            apps.json
           generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -6,6 +6,22 @@ Uygulama, gelecekte **BetterTTV (BTTV)**, **FrankerFaceZ (FFZ)** veya özel kayn
 
 ---
 
+## 📲 SideStore & AltStore Kaynağı (Community Source)
+
+StickerTV'yi **SideStore** veya **AltStore** mağazanıza ekleyerek IPA indirmekle uğraşmadan tek tıkla kurabilir ve yeni sürümler çıktığında doğrudan mağaza içinden otomatik güncelleyebilirsiniz!
+
+### ⚡ Tek Tıkla Mağazana Ekle:
+* [📲 **SideStore'a Ekle**](sidestore://source?url=https%3A%2F%2Fraw.githubusercontent.com%2Fsametalkis%2Fstickertv-ios%2Fmaster%2Fapps.json) *(iPhone'unuzdan bu linke tıklayın)*
+* [📲 **AltStore'a Ekle**](altstore://source?url=https%3A%2F%2Fraw.githubusercontent.com%2Fsametalkis%2Fstickertv-ios%2Fmaster%2Fapps.json) *(iPhone'unuzdan bu linke tıklayın)*
+
+### 📋 Manuel Kaynak URL'si:
+Aşağıdaki bağlantıyı kopyalayıp SideStore / AltStore uygulamasındaki **Sources ➔ `+`** butonuna yapıştırmanız yeterlidir:
+```text
+https://raw.githubusercontent.com/sametalkis/stickertv-ios/master/apps.json
+```
+
+---
+
 ## 🏛 Mimari Yapı
 
 Proje, katmanlı ve birbirinden bağımsız 4 ana modülden oluşur:
