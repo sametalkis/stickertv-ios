@@ -60,10 +60,11 @@ public final class WhatsAppPasteboardBridge: @unchecked Sendable {
             )
             let base64 = stickerData.base64EncodedString()
             
-            // Ensure emojis exist, fallback to smart suggestion if empty
-            let emojis = sticker.emojis.isEmpty
+            // Ensure emojis exist, fallback to smart suggestion if empty, and clamp to 3
+            let rawEmojis = sticker.emojis.isEmpty
                 ? EmojiSuggester.suggest(for: sticker.emote.name, tags: sticker.emote.tags)
                 : sticker.emojis
+            let emojis = Array(rawEmojis.prefix(WhatsAppLimits.maxEmojisCount))
             
             var stickerDict: [String: Any] = [:]
             stickerDict["image_data"] = base64

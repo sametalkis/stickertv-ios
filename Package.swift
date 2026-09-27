@@ -49,7 +49,8 @@ let package = Package(
             name: "WhatsAppEngine",
             dependencies: [
                 "StickerCore",
-                .product(name: "SDWebImageWebPCoder", package: "SDWebImageWebPCoder")
+                .product(name: "SDWebImageWebPCoder", package: "SDWebImageWebPCoder"),
+                .product(name: "SDWebImage", package: "SDWebImage")
             ],
             path: "Sources/WhatsAppEngine"
         ),
