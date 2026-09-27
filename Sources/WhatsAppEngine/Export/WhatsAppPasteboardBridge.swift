@@ -52,7 +52,7 @@ public final class WhatsAppPasteboardBridge: @unchecked Sendable {
         let trayBase64 = trayData.base64EncodedString()
         
         // 3. Prepare Stickers
-        var stickerPayloads: [WhatsAppStickerPayload] = []
+        var stickersArray: [[String: Any]] = []
         for sticker in pack.stickers {
             let (_, stickerData) = try await pipeline.processSticker(for: sticker.emote)
             let base64 = stickerData.base64EncodedString()
@@ -62,42 +62,40 @@ public final class WhatsAppPasteboardBridge: @unchecked Sendable {
                 ? EmojiSuggester.suggest(for: sticker.emote.name, tags: sticker.emote.tags)
                 : sticker.emojis
             
-            stickerPayloads.append(
-                WhatsAppStickerPayload(
-                    imageData: base64,
-                    emojis: emojis
-                )
-            )
+            var stickerDict: [String: Any] = [:]
+            stickerDict["image_data"] = base64
+            stickerDict["emojis"] = emojis
+            stickersArray.append(stickerDict)
         }
         
-        // 4. Construct WhatsApp Sticker Pack Payload
-        let payload = WhatsAppStickerPackPayload(
-            identifier: pack.id.uuidString,
-            name: pack.name,
-            publisher: pack.publisher,
-            trayImageData: trayBase64,
-            publisherWebsite: "https://7tv.app",
-            privacyPolicyWebsite: "https://7tv.app/privacy",
-            licenseAgreementWebsite: "https://7tv.app/terms",
-            animatedStickerPack: pack.isAnimatedPack,
-            stickers: stickerPayloads
-        )
+        // 4. Construct WhatsApp Sticker Pack Payload matching official specs
+        var json: [String: Any] = [:]
+        json["identifier"] = pack.id.uuidString
+        json["name"] = pack.name
+        json["publisher"] = pack.publisher
+        json["tray_image"] = trayBase64
+        if pack.isAnimatedPack {
+            json["animated_sticker_pack"] = true
+        }
+        json["stickers"] = stickersArray
         
-        // 5. JSON Encode
-        let encoder = JSONEncoder()
-        guard let jsonData = try? encoder.encode(payload) else {
+        // 5. JSON Serialization
+        guard let jsonData = try? JSONSerialization.data(withJSONObject: json, options: []) else {
             throw WhatsAppExportError.encodingFailed("JSON paketi oluşturulamadı.")
         }
         
         #if canImport(UIKit)
         guard let url = URL(string: WhatsAppLimits.urlScheme),
-              UIApplication.shared.canOpenURL(url) else {
+              UIApplication.shared.canOpenURL(URL(string: "whatsapp://")!) else {
             throw WhatsAppExportError.whatsAppNotInstalled
         }
         
-        // Write to UIPasteboard
+        // Write to UIPasteboard using official WhatsApp UTI and options
         let pasteboard = UIPasteboard.general
-        pasteboard.setValue(jsonData, forPasteboardType: WhatsAppLimits.pasteboardType)
+        pasteboard.setItems([[WhatsAppLimits.pasteboardType: jsonData]], options: [
+            UIPasteboard.OptionsKey.localOnly: true,
+            UIPasteboard.OptionsKey.expirationDate: NSDate(timeIntervalSinceNow: 60)
+        ])
         
         // Open WhatsApp via URL scheme
         UIApplication.shared.open(url, options: [:], completionHandler: nil)

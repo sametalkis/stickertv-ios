@@ -37,4 +37,17 @@ final class WhatsAppLimitsTests: XCTestCase {
         XCTAssertTrue(result.errors.contains(where: { $0.contains("Paket adı boş olamaz") }))
         XCTAssertTrue(result.errors.contains(where: { $0.contains("Yayıncı adı boş olamaz") }))
     }
+    
+    func testValidationFailsWithMixedAnimatedAndStaticStickers() {
+        var pack = StickerPack(name: "Mixed Pack", publisher: "Publisher")
+        pack.stickers = [
+            StickerItem(emote: EmoteItem(id: "1", sourceId: "7tv", name: "static1", isAnimated: false), emojis: ["😀"]),
+            StickerItem(emote: EmoteItem(id: "2", sourceId: "7tv", name: "static2", isAnimated: false), emojis: ["😀"]),
+            StickerItem(emote: EmoteItem(id: "3", sourceId: "7tv", name: "anim1", isAnimated: true), emojis: ["🔥"])
+        ]
+        
+        let result = WhatsAppValidationEngine.validate(pack: pack)
+        XCTAssertFalse(result.isValid)
+        XCTAssertTrue(result.errors.contains(where: { $0.contains("hem hareketli hem statik") }))
+    }
 }

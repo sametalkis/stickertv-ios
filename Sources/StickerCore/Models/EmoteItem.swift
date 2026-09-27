@@ -31,21 +31,34 @@ public struct EmoteItem: Identifiable, Hashable, Codable, Sendable {
         self.ownerName = ownerName
     }
     
-    /// Finds the best image URL for sticker generation (prefers 3x or 2x for optimal 512x512 quality).
+    /// Finds the best WebP image URL for WhatsApp sticker generation (prefers 4x/3x/2x WebP).
     public var preferredStickerImageURL: URL? {
+        let webpImages = images.filter {
+            $0.mimeType.contains("webp") || $0.url.absoluteString.hasSuffix(".webp")
+        }
+        
+        let candidateImages: [EmoteImage]
+        if isAnimated {
+            let animatedCandidates = webpImages.filter { !$0.url.absoluteString.contains("static") }
+            candidateImages = animatedCandidates.isEmpty ? webpImages : animatedCandidates
+        } else {
+            candidateImages = webpImages
+        }
+        
         // WhatsApp sticker is 512x512.
-        // 7TV 1x is 32px, 2x is 64px, 3x is 96px, 4x is 128px+.
-        // Prefer 4x, then 3x, then 2x, then highest available.
-        if let img4x = images.first(where: { $0.scale == 4 }) {
-            return img4x.url
+        // Prefer 4x, then 3x, then 2x, then 1x.
+        let limit = isAnimated ? 480 * 1024 : 100 * 1024
+        
+        for scale in [4, 3, 2, 1] {
+            if let img = candidateImages.first(where: { $0.scale == scale }) {
+                if let size = img.fileSize, size > limit {
+                    continue
+                }
+                return img.url
+            }
         }
-        if let img3x = images.first(where: { $0.scale == 3 }) {
-            return img3x.url
-        }
-        if let img2x = images.first(where: { $0.scale == 2 }) {
-            return img2x.url
-        }
-        return images.last?.url
+        
+        return candidateImages.first?.url ?? images.first?.url
     }
     
     /// Preview image URL for quick UI display (prefers 2x or 1x for performance).

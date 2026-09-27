@@ -46,7 +46,13 @@ public struct WhatsAppValidationEngine: Sendable {
             errors.append("WhatsApp için pakette en fazla \(WhatsAppLimits.maxStickerCount) çıkartma olabilir (Mevcut: \(pack.stickers.count)).")
         }
         
-        // 4. Sticker individual constraints
+        // 4. Mixed animated & static check (WhatsApp does not allow mixed packs)
+        let animatedCount = pack.stickers.filter { $0.emote.isAnimated }.count
+        if animatedCount > 0 && animatedCount < pack.stickers.count {
+            errors.append("WhatsApp bir pakette hem hareketli hem statik çıkartmaların bir arada bulunmasına izin vermez (\(animatedCount) hareketli, \(pack.stickers.count - animatedCount) statik). Lütfen paketteki çıkartmaların tamamını hareketli veya tamamını statik yapın.")
+        }
+        
+        // 5. Sticker individual constraints
         for (index, sticker) in pack.stickers.enumerated() {
             let num = index + 1
             if sticker.emojis.isEmpty {

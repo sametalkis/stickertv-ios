@@ -39,20 +39,7 @@ public final class ImageProcessingPipeline: @unchecked Sendable {
         
         let rawData = try await networkClient.downloadData(from: remoteURL)
         
-        var finalData: Data = rawData
-        
-        #if canImport(UIKit)
-        if !emote.isAnimated, let uiImage = UIImage(data: rawData) {
-            // Re-render onto 512x512 transparent canvas
-            if let canvasImage = CanvasResizer.renderOnCanvas(image: uiImage) {
-                // If native webp encoder is available, encode; otherwise preserve validated webp
-                if let png = canvasImage.pngData() {
-                    // For static, fallback to raw or converted data
-                    finalData = png
-                }
-            }
-        }
-        #endif
+        let finalData: Data = rawData
         
         // Write to local temporary file
         try finalData.write(to: destination, options: .atomic)

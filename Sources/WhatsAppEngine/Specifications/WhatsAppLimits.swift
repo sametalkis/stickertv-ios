@@ -48,7 +48,7 @@ public struct WhatsAppLimits {
     public static let maxEmojisCount = 3
     
     /// WhatsApp custom pasteboard identifier.
-    public static let pasteboardType = "net.whatsapp.WhatsApp.StickerManager.share"
+    public static let pasteboardType = "net.whatsapp.third-party.sticker-pack"
     
     /// WhatsApp sticker pack deep link URL scheme.
     public static let urlScheme = "whatsapp://stickerPack"
