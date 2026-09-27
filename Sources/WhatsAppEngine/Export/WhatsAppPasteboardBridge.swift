@@ -66,6 +66,14 @@ public final class WhatsAppPasteboardBridge: @unchecked Sendable {
                 : sticker.emojis
             let emojis = Array(rawEmojis.prefix(WhatsAppLimits.maxEmojisCount))
             
+            // Pre-flight check individual sticker size limit
+            let limit = (pack.isAnimatedPack || sticker.emote.isAnimated) ? WhatsAppLimits.maxAnimatedStickerBytes : WhatsAppLimits.maxStaticStickerBytes
+            if stickerData.count > limit {
+                throw WhatsAppExportError.validationFailed([
+                    "'\(sticker.emote.name)' çıkartmasının boyutu (\(stickerData.count / 1024) KB) WhatsApp'ın maksimum sınırını (\(limit / 1024) KB) aşıyor."
+                ])
+            }
+            
             var stickerDict: [String: Any] = [:]
             stickerDict["image_data"] = base64
             stickerDict["emojis"] = emojis
@@ -100,6 +108,7 @@ public final class WhatsAppPasteboardBridge: @unchecked Sendable {
             UIPasteboard.OptionsKey.localOnly: true,
             UIPasteboard.OptionsKey.expirationDate: NSDate(timeIntervalSinceNow: 60)
         ])
+        pasteboard.setData(jsonData, forPasteboardType: WhatsAppLimits.pasteboardType)
         
         // Open WhatsApp via URL scheme
         UIApplication.shared.open(url, options: [:], completionHandler: nil)

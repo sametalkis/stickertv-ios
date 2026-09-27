@@ -37,7 +37,7 @@ public final class ImageProcessingPipeline: @unchecked Sendable {
         for emote: EmoteItem,
         isPartOfAnimatedPack: Bool = false
     ) async throws -> (fileURL: URL, data: Data) {
-        let destination = cacheDirectory.appendingPathComponent("v4_\(emote.id)_\(isPartOfAnimatedPack ? "anim" : "stat").webp")
+        let destination = cacheDirectory.appendingPathComponent("v5_\(emote.id)_\(isPartOfAnimatedPack ? "anim" : "stat").webp")
         
         // Check local cache first
         if fileManager.fileExists(atPath: destination.path),
@@ -63,34 +63,45 @@ public final class ImageProcessingPipeline: @unchecked Sendable {
                 // Animated Emote: subsample and render each frame onto 512x512 canvas
                 let totalFrames = frames.count
                 let totalDuration = decodedImage.duration > 0 ? decodedImage.duration : Double(totalFrames) * 0.1
-                let plannedFrames = AnimatedWebPOptimizer.planFrameSampling(
-                    totalFrames: totalFrames,
-                    totalDuration: totalDuration,
-                    targetMaxFrames: 30
-                )
                 
-                var sdFrames: [SDImageFrame] = []
-                for meta in plannedFrames {
-                    let frame = frames[meta.index]
-                    let resized = CanvasResizer.renderOnCanvas(
-                        image: frame,
-                        targetSize: CanvasResizer.targetStickerSize,
-                        margin: CGFloat(WhatsAppLimits.recommendedMargin)
-                    ) ?? frame
-                    let duration = max(0.012, meta.durationSeconds)
-                    sdFrames.append(SDImageFrame(image: resized, duration: duration))
-                }
-                
-                // Multi-frame animated WebP encoding (loopCount: 0 = infinite loop)
+                // Adaptive multi-pass compression to strictly satisfy <= 480 KB limit
                 var finalData: Data?
-                for quality: Double in [0.75, 0.60, 0.45, 0.30] {
-                    let opts: [SDImageCoderOption: Any] = [.encodeCompressionQuality: quality]
-                    if let data = coder.encodedData(with: sdFrames, loopCount: 0, format: .webP, options: opts) {
-                        if data.count <= WhatsAppLimits.safeAnimatedStickerBytes || quality <= 0.30 {
-                            finalData = data
-                            break
+                var frameBudget = min(24, totalFrames)
+                
+                while frameBudget >= 6 {
+                    let plannedFrames = AnimatedWebPOptimizer.planFrameSampling(
+                        totalFrames: totalFrames,
+                        totalDuration: totalDuration,
+                        targetMaxFrames: frameBudget
+                    )
+                    
+                    var sdFrames: [SDImageFrame] = []
+                    for meta in plannedFrames {
+                        let frame = frames[meta.index]
+                        let resized = CanvasResizer.renderOnCanvas(
+                            image: frame,
+                            targetSize: CanvasResizer.targetStickerSize,
+                            margin: CGFloat(WhatsAppLimits.recommendedMargin)
+                        ) ?? frame
+                        let duration = max(0.012, meta.durationSeconds)
+                        sdFrames.append(SDImageFrame(image: resized, duration: duration))
+                    }
+                    
+                    for quality: Double in [0.75, 0.55, 0.40, 0.25] {
+                        let opts: [SDImageCoderOption: Any] = [.encodeCompressionQuality: quality]
+                        if let data = coder.encodedData(with: sdFrames, loopCount: 0, format: .webP, options: opts) {
+                            if data.count <= WhatsAppLimits.safeAnimatedStickerBytes {
+                                finalData = data
+                                break
+                            }
                         }
                     }
+                    
+                    if finalData != nil {
+                        break
+                    }
+                    // If still over 480 KB, halve frame budget and try again
+                    frameBudget = frameBudget / 2
                 }
                 
                 if let data = finalData {
