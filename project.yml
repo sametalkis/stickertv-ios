@@ -9,6 +9,9 @@ packages:
   SDWebImageWebPCoder:
     url: https://github.com/SDWebImage/SDWebImageWebPCoder.git
     from: "0.14.6"
+  SDWebImage:
+    url: https://github.com/SDWebImage/SDWebImage.git
+    from: "5.19.0"
 
 targets:
   StickerTV:
@@ -24,6 +27,8 @@ targets:
     dependencies:
       - package: SDWebImageWebPCoder
         product: SDWebImageWebPCoder
+      - package: SDWebImage
+        product: SDWebImage
     settings:
       base:
         PRODUCT_NAME: StickerTV

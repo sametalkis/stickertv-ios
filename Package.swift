@@ -16,7 +16,8 @@ let package = Package(
         .library(name: "StickerAppCore", targets: ["StickerAppCore"])
     ],
     dependencies: [
-        .package(url: "https://github.com/SDWebImage/SDWebImageWebPCoder.git", from: "0.14.6")
+        .package(url: "https://github.com/SDWebImage/SDWebImageWebPCoder.git", from: "0.14.6"),
+        .package(url: "https://github.com/SDWebImage/SDWebImage.git", from: "5.19.0")
     ],
     targets: [
         // MARK: - Core Domain & Multi-Source Abstraction
@@ -65,6 +66,7 @@ let package = Package(
                 "StickerCore",
                 "SevenTVSource",
                 "WhatsAppEngine",
+                .product(name: "SDWebImage", package: "SDWebImage"),
                 .product(name: "SDWebImageWebPCoder", package: "SDWebImageWebPCoder")
             ],
             path: "Sources/StickerAppCore"

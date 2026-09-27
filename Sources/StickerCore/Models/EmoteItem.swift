@@ -63,12 +63,25 @@ public struct EmoteItem: Identifiable, Hashable, Codable, Sendable {
     
     /// Preview image URL for quick UI display (prefers 2x or 1x for performance).
     public var thumbnailURL: URL? {
-        if let img2x = images.first(where: { $0.scale == 2 }) {
-            return img2x.url
+        let candidateImages: [EmoteImage]
+        if isAnimated {
+            let nonStatic = images.filter { !$0.url.absoluteString.contains("static") }
+            candidateImages = nonStatic.isEmpty ? images : nonStatic
+        } else {
+            candidateImages = images
         }
-        if let img1x = images.first(where: { $0.scale == 1 }) {
-            return img1x.url
+        
+        let preferredFormatImages = candidateImages.filter {
+            $0.mimeType.contains("webp") || $0.mimeType.contains("gif") ||
+            $0.url.absoluteString.hasSuffix(".webp") || $0.url.absoluteString.hasSuffix(".gif")
         }
-        return images.first?.url
+        let pool = preferredFormatImages.isEmpty ? candidateImages : preferredFormatImages
+        
+        for scale in [2, 1, 3, 4] {
+            if let img = pool.first(where: { $0.scale == scale }) {
+                return img.url
+            }
+        }
+        return pool.first?.url ?? images.first?.url
     }
 }
