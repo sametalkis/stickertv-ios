@@ -14,7 +14,7 @@ import SDWebImage
 
 /// Complete image conversion and preparation pipeline for WhatsApp stickers.
 /// Guarantees that all stickers are aspect-fit centered on a 512x512 transparent canvas
-/// and encoded as compliant WebP files.
+/// and encoded as compliant WebP files. Supports auto-converting static stickers in animated packs.
 public final class ImageProcessingPipeline: @unchecked Sendable {
     
     private let cacheDirectory: URL
@@ -31,8 +31,13 @@ public final class ImageProcessingPipeline: @unchecked Sendable {
     }
     
     /// Prepares and optimizes an emote into a WhatsApp-compliant 512x512 WebP file.
-    public func processSticker(for emote: EmoteItem) async throws -> (fileURL: URL, data: Data) {
-        let destination = cacheDirectory.appendingPathComponent("\(emote.id).webp")
+    /// If the pack is animated, static emotes are automatically converted into 2-frame looped WebPs
+    /// so WhatsApp accepts the entire pack without mixed-format rejection.
+    public func processSticker(
+        for emote: EmoteItem,
+        isPartOfAnimatedPack: Bool = false
+    ) async throws -> (fileURL: URL, data: Data) {
+        let destination = cacheDirectory.appendingPathComponent("\(emote.id)_\(isPartOfAnimatedPack ? "anim" : "stat").webp")
         
         // Check local cache first
         if fileManager.fileExists(atPath: destination.path),
@@ -103,15 +108,32 @@ public final class ImageProcessingPipeline: @unchecked Sendable {
                     margin: CGFloat(WhatsAppLimits.recommendedMargin)
                 ) {
                     var finalData: Data?
-                    for quality: Double in [0.85, 0.70, 0.50] {
-                        let opts: [SDImageCoderOption: Any] = [.encodeCompressionQuality: quality]
-                        if let data = coder.encodedData(with: resized, format: .webP, options: opts) {
-                            if data.count <= WhatsAppLimits.maxStaticStickerBytes || quality <= 0.50 {
-                                finalData = data
-                                break
+                    
+                    if isPartOfAnimatedPack {
+                        // WhatsApp requires all stickers in an animated pack to have multiple frames (>1 frame).
+                        // We duplicate the frame into a 2-frame looped animation so WhatsApp accepts it seamlessly!
+                        let loopedImage = UIImage.animatedImage(with: [resized, resized], duration: 4.0) ?? resized
+                        for quality: Double in [0.80, 0.60, 0.40] {
+                            let opts: [SDImageCoderOption: Any] = [.encodeCompressionQuality: quality]
+                            if let data = coder.encodedData(with: loopedImage, format: .webP, options: opts) {
+                                if data.count <= WhatsAppLimits.safeAnimatedStickerBytes || quality <= 0.40 {
+                                    finalData = data
+                                    break
+                                }
+                            }
+                        }
+                    } else {
+                        for quality: Double in [0.85, 0.70, 0.50] {
+                            let opts: [SDImageCoderOption: Any] = [.encodeCompressionQuality: quality]
+                            if let data = coder.encodedData(with: resized, format: .webP, options: opts) {
+                                if data.count <= WhatsAppLimits.maxStaticStickerBytes || quality <= 0.50 {
+                                    finalData = data
+                                    break
+                                }
                             }
                         }
                     }
+                    
                     if let data = finalData {
                         try data.write(to: destination, options: .atomic)
                         return (destination, data)

@@ -54,7 +54,10 @@ public final class WhatsAppPasteboardBridge: @unchecked Sendable {
         // 3. Prepare Stickers
         var stickersArray: [[String: Any]] = []
         for sticker in pack.stickers {
-            let (_, stickerData) = try await pipeline.processSticker(for: sticker.emote)
+            let (_, stickerData) = try await pipeline.processSticker(
+                for: sticker.emote,
+                isPartOfAnimatedPack: pack.isAnimatedPack
+            )
             let base64 = stickerData.base64EncodedString()
             
             // Ensure emojis exist, fallback to smart suggestion if empty

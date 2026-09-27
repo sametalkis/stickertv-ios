@@ -146,12 +146,22 @@ public struct PackDetailStudioView: View {
                         ForEach(viewModel.pack.stickers) { sticker in
                             VStack(spacing: 4) {
                                 ZStack(alignment: .topTrailing) {
-                                    ZStack {
+                                    ZStack(alignment: .bottomLeading) {
                                         RoundedRectangle(cornerRadius: 12)
                                             .fill(Color(.secondarySystemBackground))
                                         
                                         AsyncEmoteImageView(url: sticker.emote.thumbnailURL)
                                             .padding(8)
+                                        
+                                        // Badge
+                                        Text(sticker.emote.isAnimated ? "GIF" : "Statik")
+                                            .font(.system(size: 8, weight: .bold))
+                                            .foregroundColor(sticker.emote.isAnimated ? .white : .secondary)
+                                            .padding(.horizontal, 4)
+                                            .padding(.vertical, 2)
+                                            .background(sticker.emote.isAnimated ? Color.blue : Color.gray.opacity(0.3))
+                                            .cornerRadius(4)
+                                            .padding(6)
                                     }
                                     .frame(height: 85)
                                     
@@ -191,6 +201,25 @@ public struct PackDetailStudioView: View {
             
             // Bottom Export Bar
             VStack(spacing: 8) {
+                if !viewModel.validationResult.isValid {
+                    VStack(alignment: .leading, spacing: 4) {
+                        ForEach(viewModel.validationResult.errors, id: \.self) { error in
+                            HStack(alignment: .top, spacing: 6) {
+                                Image(systemName: "exclamationmark.triangle.fill")
+                                    .font(.caption)
+                                    .foregroundColor(.orange)
+                                Text(error)
+                                    .font(.caption)
+                                    .foregroundColor(.orange)
+                            }
+                        }
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(10)
+                    .background(Color.orange.opacity(0.12))
+                    .cornerRadius(10)
+                }
+
                 if let error = viewModel.exportError {
                     Text(error)
                         .font(.caption)
