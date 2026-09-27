@@ -11,16 +11,25 @@
       "bundleIdentifier": "com.sametalkis.StickerTV",
       "developerName": "Samet Alkis",
       "subtitle": "7TV WhatsApp Stickers",
-      "version": "1.0.10",
+      "version": "1.0.11",
       "versionDate": "2026-09-27",
       "versionDescription": "Canlı hareketli WebP/GIF oynatma (60 FPS SDAnimatedImageView), birleşik Paketlerim ve Stüdyo yönetimi, rastgele isim üretici, varsayılan yayıncı ayarı ve 512x512 piksel WhatsApp dışa aktarım desteği.",
-      "downloadURL": "https://github.com/sametalkis/stickertv-ios/releases/download/v1.0.10/StickerTV.ipa",
+      "downloadURL": "https://github.com/sametalkis/stickertv-ios/releases/download/v1.0.11/StickerTV.ipa",
       "localizedDescription": "StickerTV lets you discover, organize, and export 7TV emotes directly to WhatsApp as official sticker packs. Features 512x512 transparent canvas, 60 FPS animated WebP/GIF playback, random pack name generation, and customizable publisher settings.",
       "iconURL": "https://raw.githubusercontent.com/sametalkis/stickertv-ios/master/App/Assets.xcassets/AppIcon.appiconset/AppIcon-1024.png",
       "tintColor": "5856D6",
-      "size": 631629,
+      "size": 634347,
       "minOSVersion": "17.0",
       "versions": [
+        {
+          "version": "1.0.11",
+          "buildVersion": "11",
+          "date": "2026-09-27",
+          "size": 634347,
+          "downloadURL": "https://github.com/sametalkis/stickertv-ios/releases/download/v1.0.11/StickerTV.ipa",
+          "localizedDescription": "Release v1.0.11",
+          "minOSVersion": "17.0"
+        },
         {
           "version": "1.0.10",
           "buildVersion": "10",
