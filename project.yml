@@ -5,6 +5,11 @@ options:
     iOS: "17.0"
   createIntermediateGroups: true
 
+packages:
+  SDWebImageWebPCoder:
+    url: https://github.com/SDWebImage/SDWebImageWebPCoder.git
+    from: "0.14.6"
+
 targets:
   StickerTV:
     type: application
@@ -16,6 +21,9 @@ targets:
       - path: Sources/SevenTVSource
       - path: Sources/WhatsAppEngine
       - path: Sources/StickerAppCore
+    dependencies:
+      - package: SDWebImageWebPCoder
+        product: SDWebImageWebPCoder
     settings:
       base:
         PRODUCT_NAME: StickerTV

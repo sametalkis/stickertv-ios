@@ -5,8 +5,16 @@ import StickerCore
 #if canImport(UIKit)
 import UIKit
 #endif
+#if canImport(SDWebImageWebPCoder)
+import SDWebImageWebPCoder
+#endif
+#if canImport(SDWebImage)
+import SDWebImage
+#endif
 
 /// Complete image conversion and preparation pipeline for WhatsApp stickers.
+/// Guarantees that all stickers are aspect-fit centered on a 512x512 transparent canvas
+/// and encoded as compliant WebP files.
 public final class ImageProcessingPipeline: @unchecked Sendable {
     
     private let cacheDirectory: URL
@@ -22,7 +30,7 @@ public final class ImageProcessingPipeline: @unchecked Sendable {
         try? fileManager.createDirectory(at: cacheDirectory, withIntermediateDirectories: true)
     }
     
-    /// Prepares and optimizes an emote into a WhatsApp-compliant WebP file.
+    /// Prepares and optimizes an emote into a WhatsApp-compliant 512x512 WebP file.
     public func processSticker(for emote: EmoteItem) async throws -> (fileURL: URL, data: Data) {
         let destination = cacheDirectory.appendingPathComponent("\(emote.id).webp")
         
@@ -39,9 +47,81 @@ public final class ImageProcessingPipeline: @unchecked Sendable {
         
         let rawData = try await networkClient.downloadData(from: remoteURL)
         
-        let finalData: Data = rawData
+        #if canImport(UIKit) && canImport(SDWebImageWebPCoder)
+        let coder = SDImageWebPCoder.shared
+        if let decodedImage = coder.decodedImage(with: rawData, options: nil) ?? UIImage(data: rawData) {
+            if let frames = decodedImage.images, frames.count > 1 {
+                // Animated Emote: subsample and render each frame onto 512x512 canvas
+                let totalFrames = frames.count
+                let totalDuration = decodedImage.duration > 0 ? decodedImage.duration : 1.0
+                let plannedFrames = AnimatedWebPOptimizer.planFrameSampling(
+                    totalFrames: totalFrames,
+                    totalDuration: totalDuration,
+                    targetMaxFrames: 30
+                )
+                
+                var resizedFrames: [UIImage] = []
+                for meta in plannedFrames {
+                    let frame = frames[meta.index]
+                    if let resized = CanvasResizer.renderOnCanvas(
+                        image: frame,
+                        targetSize: CanvasResizer.targetStickerSize,
+                        margin: CGFloat(WhatsAppLimits.recommendedMargin)
+                    ) {
+                        resizedFrames.append(resized)
+                    } else {
+                        resizedFrames.append(frame)
+                    }
+                }
+                
+                let animatedImage = UIImage.animatedImage(
+                    with: resizedFrames,
+                    duration: min(totalDuration, WhatsAppLimits.maxAnimationDurationSeconds)
+                ) ?? decodedImage
+                
+                // Adaptive compression to strictly satisfy <= 500 KB limit
+                var finalData: Data?
+                for quality: Double in [0.75, 0.60, 0.45, 0.30] {
+                    let opts: [SDImageCoderOption: Any] = [.encodeCompressionQuality: quality]
+                    if let data = coder.encodedData(with: animatedImage, format: .webP, options: opts) {
+                        if data.count <= WhatsAppLimits.safeAnimatedStickerBytes || quality <= 0.30 {
+                            finalData = data
+                            break
+                        }
+                    }
+                }
+                
+                if let data = finalData {
+                    try data.write(to: destination, options: .atomic)
+                    return (destination, data)
+                }
+            } else {
+                // Static Emote: render onto 512x512 transparent canvas
+                if let resized = CanvasResizer.renderOnCanvas(
+                    image: decodedImage,
+                    targetSize: CanvasResizer.targetStickerSize,
+                    margin: CGFloat(WhatsAppLimits.recommendedMargin)
+                ) {
+                    var finalData: Data?
+                    for quality: Double in [0.85, 0.70, 0.50] {
+                        let opts: [SDImageCoderOption: Any] = [.encodeCompressionQuality: quality]
+                        if let data = coder.encodedData(with: resized, format: .webP, options: opts) {
+                            if data.count <= WhatsAppLimits.maxStaticStickerBytes || quality <= 0.50 {
+                                finalData = data
+                                break
+                            }
+                        }
+                    }
+                    if let data = finalData {
+                        try data.write(to: destination, options: .atomic)
+                        return (destination, data)
+                    }
+                }
+            }
+        }
+        #endif
         
-        // Write to local temporary file
+        let finalData: Data = rawData
         try finalData.write(to: destination, options: .atomic)
         return (destination, finalData)
     }
@@ -55,14 +135,29 @@ public final class ImageProcessingPipeline: @unchecked Sendable {
         let rawData = try await networkClient.downloadData(from: remoteURL)
         
         #if canImport(UIKit)
-        if let uiImage = UIImage(data: rawData),
+        let coder: SDImageWebPCoder?
+        #if canImport(SDWebImageWebPCoder)
+        coder = SDImageWebPCoder.shared
+        #else
+        coder = nil
+        #endif
+        
+        let decodedImage = (coder?.decodedImage(with: rawData, options: nil)) ?? UIImage(data: rawData)
+        if let image = decodedImage,
            let trayImage = CanvasResizer.renderOnCanvas(
-            image: uiImage,
+            image: image,
             targetSize: CanvasResizer.targetTraySize,
             margin: 4.0
-           ),
-           let pngData = trayImage.pngData() {
-            return pngData
+           ) {
+            if let pngData = trayImage.pngData(), pngData.count <= WhatsAppLimits.maxTrayIconBytes {
+                return pngData
+            }
+            #if canImport(SDWebImageWebPCoder)
+            if let webpData = coder?.encodedData(with: trayImage, format: .webP, options: [.encodeCompressionQuality: 0.8]),
+               webpData.count <= WhatsAppLimits.maxTrayIconBytes {
+                return webpData
+            }
+            #endif
         }
         #endif
         

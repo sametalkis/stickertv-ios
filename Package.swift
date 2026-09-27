@@ -15,7 +15,9 @@ let package = Package(
         .library(name: "WhatsAppEngine", targets: ["WhatsAppEngine"]),
         .library(name: "StickerAppCore", targets: ["StickerAppCore"])
     ],
-    dependencies: [],
+    dependencies: [
+        .package(url: "https://github.com/SDWebImage/SDWebImageWebPCoder.git", from: "0.14.6")
+    ],
     targets: [
         // MARK: - Core Domain & Multi-Source Abstraction
         .target(
@@ -44,7 +46,10 @@ let package = Package(
         // MARK: - WhatsApp Engine (Validation, Optimization, Export)
         .target(
             name: "WhatsAppEngine",
-            dependencies: ["StickerCore"],
+            dependencies: [
+                "StickerCore",
+                .product(name: "SDWebImageWebPCoder", package: "SDWebImageWebPCoder")
+            ],
             path: "Sources/WhatsAppEngine"
         ),
         .testTarget(
@@ -56,7 +61,12 @@ let package = Package(
         // MARK: - App UI & State Management
         .target(
             name: "StickerAppCore",
-            dependencies: ["StickerCore", "SevenTVSource", "WhatsAppEngine"],
+            dependencies: [
+                "StickerCore",
+                "SevenTVSource",
+                "WhatsAppEngine",
+                .product(name: "SDWebImageWebPCoder", package: "SDWebImageWebPCoder")
+            ],
             path: "Sources/StickerAppCore"
         )
     ]
