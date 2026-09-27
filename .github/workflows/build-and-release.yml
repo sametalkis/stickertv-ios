@@ -23,13 +23,7 @@ jobs:
 
       - name: Setup Xcode
         run: |
-          echo "Available Xcode installations:"
-          ls -d /Applications/Xcode*.app || true
-          XCODE_APP=$(ls -d /Applications/Xcode_16*.app /Applications/Xcode.app 2>/dev/null | head -n 1)
-          if [ -n "$XCODE_APP" ]; then
-            echo "Selecting $XCODE_APP"
-            sudo xcode-select -s "$XCODE_APP"
-          fi
+          sudo xcode-select -s /Applications/Xcode_16.2.app || sudo xcode-select -s /Applications/Xcode_16.1.app
           xcodebuild -version
 
       - name: Install XcodeGen
