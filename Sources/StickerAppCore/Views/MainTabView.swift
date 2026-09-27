@@ -3,7 +3,7 @@ import SwiftUI
 import StickerCore
 #endif
 
-/// Root tab bar view connecting Explore, Studio, My Packs, and Settings.
+/// Root tab bar view connecting Explore, My Packs (with integrated Studio), and Settings.
 public struct MainTabView: View {
     @State private var selectedTab: Int = 0
     
@@ -17,23 +17,17 @@ public struct MainTabView: View {
                 }
                 .tag(0)
             
-            PackStudioView()
-                .tabItem {
-                    Label("Stüdyo", systemImage: "sparkles.rectangle.stack.fill")
-                }
-                .tag(1)
-            
             MyPacksView()
                 .tabItem {
                     Label("Paketlerim", systemImage: "tray.full.fill")
                 }
-                .tag(2)
+                .tag(1)
             
             SettingsView()
                 .tabItem {
                     Label("Ayarlar", systemImage: "gearshape.fill")
                 }
-                .tag(3)
+                .tag(2)
         }
     }
 }

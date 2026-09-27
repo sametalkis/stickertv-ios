@@ -6,7 +6,7 @@ import StickerCore
 import WhatsAppEngine
 #endif
 
-/// Primary discovery screen with search, sorting, and filter controls.
+/// Primary discovery screen with search, sorting, filter controls, and pack assignment.
 public struct ExploreView: View {
     @StateObject private var viewModel = ExploreViewModel()
     
@@ -61,8 +61,25 @@ public struct ExploreView: View {
                             .font(.caption.bold())
                             .padding(.horizontal, 12)
                             .padding(.vertical, 7)
-                            .background(viewModel.filterOnlyAnimated ? Color.blue : Color(.secondarySystemBackground))
+                            .background(viewModel.filterOnlyAnimated ? Color.accentColor : Color(.secondarySystemBackground))
                             .foregroundColor(viewModel.filterOnlyAnimated ? .white : .primary)
+                            .cornerRadius(20)
+                        }
+                        
+                        // NSFW Filter Toggle
+                        Button(action: {
+                            viewModel.filterNsfw.toggle()
+                            Task { await viewModel.loadInitialEmotes() }
+                        }) {
+                            HStack(spacing: 4) {
+                                Image(systemName: "eye.slash")
+                                Text("NSFW")
+                            }
+                            .font(.caption.bold())
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 7)
+                            .background(viewModel.filterNsfw ? Color.red : Color(.secondarySystemBackground))
+                            .foregroundColor(viewModel.filterNsfw ? .white : .primary)
                             .cornerRadius(20)
                         }
                     }
@@ -71,20 +88,22 @@ public struct ExploreView: View {
                 }
                 .background(Color(.systemBackground))
                 
-                // Emote Grid
+                Divider()
+                
+                // Emote Grid or State View
                 ZStack {
-                    if viewModel.isLoading {
-                        ProgressView("Emotelar yükleniyor...")
+                    if viewModel.isLoading && viewModel.items.isEmpty {
+                        ProgressView("7TV Emotelar yükleniyor...")
                             .frame(maxWidth: .infinity, maxHeight: .infinity)
                     } else if let error = viewModel.errorMessage {
                         VStack(spacing: 12) {
-                            Image(systemName: "wifi.exclamationmark")
-                                .font(.system(size: 40))
-                                .foregroundColor(.secondary)
-                            Text("Yükleme başarısız:")
+                            Image(systemName: "exclamationmark.triangle")
+                                .font(.system(size: 44))
+                                .foregroundColor(.orange)
+                            Text("Yükleme Hatası")
                                 .font(.headline)
                             Text(error)
-                                .font(.subheadline)
+                                .font(.caption)
                                 .foregroundColor(.secondary)
                                 .multilineTextAlignment(.center)
                                 .padding(.horizontal)
@@ -113,7 +132,11 @@ public struct ExploreView: View {
                                         emote: emote,
                                         isAdded: isAdded,
                                         onAddTap: {
-                                            viewModel.addToActivePack(emote: emote)
+                                            if isAdded {
+                                                viewModel.removeFromActivePack(emote: emote)
+                                            } else {
+                                                viewModel.addToActivePack(emote: emote)
+                                            }
                                         },
                                         onCardTap: {
                                             viewModel.selectedEmoteForDetail = emote
@@ -135,6 +158,43 @@ public struct ExploreView: View {
                 }
             }
             .navigationTitle("7TV Keşfet")
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Menu {
+                        Section("Eklenecek Paket:") {
+                            ForEach(viewModel.availablePacks) { pack in
+                                Button(action: {
+                                    viewModel.selectPack(pack)
+                                }) {
+                                    HStack {
+                                        Text(pack.name)
+                                        if pack.id == viewModel.activePack.id {
+                                            Image(systemName: "checkmark")
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        
+                        Button(action: {
+                            viewModel.createAndSelectNewPack()
+                        }) {
+                            Label("Yeni Paket Oluştur", systemImage: "plus.circle")
+                        }
+                    } label: {
+                        HStack(spacing: 4) {
+                            Image(systemName: "tray.and.arrow.down")
+                            Text(viewModel.activePack.name)
+                                .lineLimit(1)
+                                .font(.caption.bold())
+                        }
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 5)
+                        .background(Color(.secondarySystemBackground))
+                        .cornerRadius(12)
+                    }
+                }
+            }
             .searchable(
                 text: $viewModel.query,
                 placement: .navigationBarDrawer(displayMode: .always),
@@ -148,6 +208,9 @@ public struct ExploreView: View {
                     await viewModel.loadInitialEmotes()
                 }
             }
+            .onAppear {
+                viewModel.refreshPacks()
+            }
             .sheet(item: $viewModel.selectedEmoteForDetail) { emote in
                 let isAdded = viewModel.activePack.stickers.contains { $0.emote.id == emote.id }
                 EmoteDetailSheet(
@@ -155,7 +218,7 @@ public struct ExploreView: View {
                     isAdded: isAdded,
                     onAddToggle: {
                         if isAdded {
-                            viewModel.activePack.stickers.removeAll { $0.emote.id == emote.id }
+                            viewModel.removeFromActivePack(emote: emote)
                         } else {
                             viewModel.addToActivePack(emote: emote)
                         }

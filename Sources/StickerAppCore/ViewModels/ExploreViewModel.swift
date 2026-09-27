@@ -20,6 +20,7 @@ public final class ExploreViewModel: ObservableObject {
     @Published public var isLoadingMore: Bool = false
     @Published public var errorMessage: String?
     
+    @Published public var availablePacks: [StickerPack] = []
     @Published public var activePack: StickerPack
     @Published public var selectedEmoteForDetail: EmoteItem?
     @Published public var notificationToast: String?
@@ -31,7 +32,49 @@ public final class ExploreViewModel: ObservableObject {
     
     public init(environment: AppEnvironment = .shared) {
         self.environment = environment
-        self.activePack = StickerPack(name: "Favori 7TV Emotelar")
+        
+        let existingPacks = environment.storage.loadPacks()
+        self.availablePacks = existingPacks
+        
+        if let first = existingPacks.first {
+            self.activePack = first
+        } else {
+            let defaultCreator = UserDefaults.standard.string(forKey: "defaultCreatorName") ?? "StickerTV"
+            let initialPack = StickerPack(
+                name: RandomPackNameGenerator.generate(),
+                publisher: defaultCreator.isEmpty ? "StickerTV" : defaultCreator
+            )
+            environment.storage.save(pack: initialPack)
+            self.activePack = initialPack
+            self.availablePacks = [initialPack]
+        }
+    }
+    
+    public func refreshPacks() {
+        let loaded = environment.storage.loadPacks()
+        self.availablePacks = loaded
+        if let current = loaded.first(where: { $0.id == activePack.id }) {
+            self.activePack = current
+        } else if let first = loaded.first {
+            self.activePack = first
+        }
+    }
+    
+    public func selectPack(_ pack: StickerPack) {
+        self.activePack = pack
+        notificationToast = "Aktif paket: \(pack.name)"
+    }
+    
+    public func createAndSelectNewPack() {
+        let defaultCreator = UserDefaults.standard.string(forKey: "defaultCreatorName") ?? "StickerTV"
+        let newPack = StickerPack(
+            name: RandomPackNameGenerator.generate(),
+            publisher: defaultCreator.isEmpty ? "StickerTV" : defaultCreator
+        )
+        environment.storage.save(pack: newPack)
+        refreshPacks()
+        self.activePack = newPack
+        notificationToast = "'\(newPack.name)' paketi oluşturuldu ve seçildi!"
     }
     
     /// Loads initial data or triggers a search.
@@ -122,13 +165,15 @@ public final class ExploreViewModel: ObservableObject {
     
     /// Adds an emote to the active pack.
     public func addToActivePack(emote: EmoteItem) {
+        refreshPacks()
+        
         if activePack.stickers.count >= WhatsAppLimits.maxStickerCount {
             notificationToast = "Paket dolu (Maksimum \(WhatsAppLimits.maxStickerCount) çıkartma)."
             return
         }
         
         if activePack.stickers.contains(where: { $0.emote.id == emote.id }) {
-            notificationToast = "'\(emote.name)' zaten pakete ekli."
+            notificationToast = "'\(emote.name)' zaten '\(activePack.name)' paketine ekli."
             return
         }
         
@@ -142,6 +187,19 @@ public final class ExploreViewModel: ObservableObject {
         
         activePack.updatedAt = Date()
         environment.storage.save(pack: activePack)
-        notificationToast = "'\(emote.name)' pakete eklendi! (\(activePack.stickers.count)/\(WhatsAppLimits.maxStickerCount))"
+        refreshPacks()
+        notificationToast = "'\(emote.name)' '\(activePack.name)' paketine eklendi! (\(activePack.stickers.count)/\(WhatsAppLimits.maxStickerCount))"
+    }
+    
+    /// Removes an emote from the active pack.
+    public func removeFromActivePack(emote: EmoteItem) {
+        activePack.stickers.removeAll { $0.emote.id == emote.id }
+        if activePack.trayEmote?.id == emote.id {
+            activePack.trayEmote = activePack.stickers.first?.emote
+        }
+        activePack.updatedAt = Date()
+        environment.storage.save(pack: activePack)
+        refreshPacks()
+        notificationToast = "'\(emote.name)' paketten çıkarıldı."
     }
 }

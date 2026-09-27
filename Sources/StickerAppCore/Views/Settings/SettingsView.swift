@@ -8,6 +8,7 @@ import WhatsAppEngine
 
 /// Settings screen showing active providers, WhatsApp sticker specifications, and storage management.
 public struct SettingsView: View {
+    @AppStorage("defaultCreatorName") private var defaultCreatorName: String = "StickerTV"
     @State private var cacheClearedNotice: Bool = false
     
     public init() {}
@@ -15,7 +16,22 @@ public struct SettingsView: View {
     public var body: some View {
         NavigationStack {
             List {
-                // Section 1: Active & Future Providers (Multi-Source Architecture)
+                // Section 1: Package Preferences
+                Section(header: Text("Paket Tercihleri")) {
+                    HStack {
+                        Image(systemName: "person.crop.circle.fill")
+                            .foregroundColor(.blue)
+                            .frame(width: 28)
+                        Text("Varsayılan Yayıncı")
+                            .font(.body)
+                        Spacer()
+                        TextField("Yayıncı Adı", text: $defaultCreatorName)
+                            .multilineTextAlignment(.trailing)
+                            .foregroundColor(.secondary)
+                    }
+                }
+                
+                // Section 2: Active & Future Providers (Multi-Source Architecture)
                 Section(header: Text("Emote Kaynakları (Multi-Source)")) {
                     HStack {
                         Image(systemName: "tv.fill")
@@ -73,46 +89,6 @@ public struct SettingsView: View {
                             .background(Color.blue.opacity(0.15))
                             .foregroundColor(.blue)
                             .cornerRadius(6)
-                    }
-                }
-                
-                // Section 2: WhatsApp Technical Specifications
-                Section(header: Text("WhatsApp Çıkartma Kuralları")) {
-                    HStack {
-                        Text("Paket Başına Çıkartma")
-                        Spacer()
-                        Text("3 - 30 Adet")
-                            .foregroundColor(.secondary)
-                    }
-                    HStack {
-                        Text("Görsel Çözünürlüğü")
-                        Spacer()
-                        Text("512 x 512 px")
-                            .foregroundColor(.secondary)
-                    }
-                    HStack {
-                        Text("Statik Çıkartma Boyutu")
-                        Spacer()
-                        Text("Maks 100 KB")
-                            .foregroundColor(.secondary)
-                    }
-                    HStack {
-                        Text("Hareketli Çıkartma Boyutu")
-                        Spacer()
-                        Text("Maks 500 KB")
-                            .foregroundColor(.secondary)
-                    }
-                    HStack {
-                        Text("Hareketli Süre Sınırı")
-                        Spacer()
-                        Text("Maks 6.0 sn")
-                            .foregroundColor(.secondary)
-                    }
-                    HStack {
-                        Text("Menü Simgesi (Tray Icon)")
-                        Spacer()
-                        Text("96 x 96 px (<50 KB)")
-                            .foregroundColor(.secondary)
                     }
                 }
                 

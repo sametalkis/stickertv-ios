@@ -20,8 +20,12 @@ public final class MyPacksViewModel: ObservableObject {
         self.packs = environment.storage.loadPacks()
     }
     
-    public func createNewPack(name: String = "Yeni Paket") -> StickerPack {
-        let newPack = StickerPack(name: name)
+    public func createNewPack(name: String? = nil, publisher: String? = nil) -> StickerPack {
+        let generatedName = name ?? RandomPackNameGenerator.generate()
+        let defaultCreator = UserDefaults.standard.string(forKey: "defaultCreatorName") ?? "StickerTV"
+        let chosenPublisher = publisher ?? (defaultCreator.isEmpty ? "StickerTV" : defaultCreator)
+        
+        let newPack = StickerPack(name: generatedName, publisher: chosenPublisher)
         environment.storage.save(pack: newPack)
         loadPacks()
         return newPack
@@ -33,5 +37,10 @@ public final class MyPacksViewModel: ObservableObject {
             environment.storage.delete(packId: pack.id)
         }
         packs.remove(atOffsets: offsets)
+    }
+    
+    public func deletePack(id: UUID) {
+        environment.storage.delete(packId: id)
+        loadPacks()
     }
 }

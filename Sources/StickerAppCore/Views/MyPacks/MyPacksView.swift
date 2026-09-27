@@ -3,7 +3,7 @@ import SwiftUI
 import StickerCore
 #endif
 
-/// Screen displaying the user's saved sticker packs.
+/// Screen displaying all user sticker packs with integrated studio navigation and quick creation.
 public struct MyPacksView: View {
     @StateObject private var viewModel = MyPacksViewModel()
     @State private var showingNewPackAlert: Bool = false
@@ -16,25 +16,42 @@ public struct MyPacksView: View {
         NavigationStack {
             List {
                 if viewModel.packs.isEmpty {
-                    VStack(spacing: 12) {
+                    VStack(spacing: 16) {
                         Image(systemName: "tray.fill")
-                            .font(.system(size: 44))
+                            .font(.system(size: 48))
                             .foregroundColor(.secondary)
-                        Text("Kayıtlı paket bulunmuyor")
+                        Text("Henüz paketiniz yok")
                             .font(.headline)
-                        Text("Yeni bir paket oluşturarak 7TV emote'larını kaydetmeye başlayabilirsiniz.")
+                        Text("Sağ üstteki '+' butonuna basarak ilk çıkartma paketinizi anında oluşturabilirsiniz.")
                             .font(.subheadline)
                             .foregroundColor(.secondary)
                             .multilineTextAlignment(.center)
+                        
+                        Button(action: createNewRandomPack) {
+                            HStack {
+                                Image(systemName: "sparkles")
+                                Text("Rastgele İsimli Paket Oluştur")
+                            }
+                            .font(.subheadline.bold())
+                            .padding(.horizontal, 16)
+                            .padding(.vertical, 10)
+                            .background(Color.accentColor)
+                            .foregroundColor(.white)
+                            .cornerRadius(12)
+                        }
+                        .padding(.top, 8)
                     }
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 40)
                     .listRowBackground(Color.clear)
                 } else {
                     ForEach(viewModel.packs) { pack in
-                        Button(action: {
-                            selectedPackForStudio = pack
-                        }) {
+                        NavigationLink(destination: PackDetailStudioView(
+                            pack: pack,
+                            onPackDeleted: {
+                                viewModel.loadPacks()
+                            }
+                        )) {
                             HStack(spacing: 16) {
                                 ZStack {
                                     RoundedRectangle(cornerRadius: 12)
@@ -59,6 +76,12 @@ public struct MyPacksView: View {
                                             .font(.caption)
                                             .foregroundColor(.secondary)
                                         
+                                        if !pack.publisher.isEmpty {
+                                            Text("• \(pack.publisher)")
+                                                .font(.caption)
+                                                .foregroundColor(.secondary)
+                                        }
+                                        
                                         if pack.isAnimatedPack {
                                             Text("• Hareketli")
                                                 .font(.caption.bold())
@@ -68,10 +91,6 @@ public struct MyPacksView: View {
                                 }
                                 
                                 Spacer()
-                                
-                                Image(systemName: "chevron.right")
-                                    .font(.caption)
-                                    .foregroundColor(.secondary)
                             }
                             .padding(.vertical, 4)
                         }
@@ -83,7 +102,7 @@ public struct MyPacksView: View {
             .toolbar {
                 ToolbarItem(placement: .primaryAction) {
                     Button(action: {
-                        newPackTitle = "Yeni Paket \(viewModel.packs.count + 1)"
+                        newPackTitle = RandomPackNameGenerator.generate()
                         showingNewPackAlert = true
                     }) {
                         Image(systemName: "plus")
@@ -93,17 +112,25 @@ public struct MyPacksView: View {
             .alert("Yeni Paket Oluştur", isPresented: $showingNewPackAlert) {
                 TextField("Paket Adı", text: $newPackTitle)
                 Button("Oluştur") {
-                    let newPack = viewModel.createNewPack(name: newPackTitle)
+                    let chosenName = newPackTitle.trimmingCharacters(in: .whitespacesAndNewlines)
+                    let newPack = viewModel.createNewPack(name: chosenName.isEmpty ? nil : chosenName)
                     selectedPackForStudio = newPack
                 }
                 Button("Vazgeç", role: .cancel) {}
             }
-            .sheet(item: $selectedPackForStudio) { pack in
-                PackStudioView(pack: pack)
+            .navigationDestination(item: $selectedPackForStudio) { pack in
+                PackDetailStudioView(pack: pack, onPackDeleted: {
+                    viewModel.loadPacks()
+                })
             }
             .onAppear {
                 viewModel.loadPacks()
             }
         }
+    }
+    
+    private func createNewRandomPack() {
+        let newPack = viewModel.createNewPack()
+        selectedPackForStudio = newPack
     }
 }
